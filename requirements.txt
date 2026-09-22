@@ -1,0 +1,2 @@
+# Local PDF parsing; no document data is sent to an external service.
+pypdf==6.18.1

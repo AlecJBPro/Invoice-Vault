@@ -1,0 +1,93 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="light">
+  <meta name="theme-color" content="#173f35">
+  <title>Invoice Vault · A little less paperwork</title>
+  <link rel="icon" href="data:,">
+  <link rel="stylesheet" href="/style.css">
+  <script src="/app.js" defer></script>
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to content</a>
+  <main id="main-content">
+    <section id="login" class="login-layout" aria-label="Sign in to Invoice Vault">
+      <div class="login-story">
+        <a class="brand brand-light" href="/" aria-label="Invoice Vault home"><span class="brand-mark" aria-hidden="true">iv<span>.</span></span><span>invoice vault</span></a>
+        <div class="story-copy"><p class="eyebrow">A LITTLE LESS PAPERWORK.</p><h1>Big plans.<br>Small details.<br><em>All in one place.</em></h1><p>Your invoices deserve a better home than a pile on your desk. Collect, organize, and get back to business.</p></div>
+        <div class="paper-scene" aria-hidden="true">
+          <div class="scene-orbit"></div><div class="paper-back"></div>
+          <div class="paper"><div class="paper-top"><span class="mini-mark">iv.</span><span>INVOICE</span></div><div class="paper-line long"></div><div class="paper-line short"></div><div class="paper-rule"></div><div class="paper-pair"><span>Every detail</span><span>In its place</span></div><div class="paper-line"></div><div class="paper-line long"></div><div class="paper-rule"></div><div class="paper-bottom"><span>Less searching.</span><strong>More doing.</strong></div></div>
+          <div class="scene-tag"><span class="check-disc">✓</span> Meet your organized era.</div><span class="scene-spark">✳</span>
+        </div>
+        <p class="story-footer"><span class="status-dot"></span> Local-first. No third-party AI uploads.</p>
+      </div>
+      <div class="login-entry">
+        <div class="login-entry-top"><span class="prototype-label">THE BUSINESS WORKSPACE <span> / </span> LOCAL PROTOTYPE</span><label class="theme-switch landing-theme-switch"><span>Dark mode</span><input id="theme-toggle-landing" class="theme-toggle" type="checkbox" role="switch" aria-label="Enable dark mode"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></label></div>
+        <div class="login-form-wrap"><span class="welcome-icon" aria-hidden="true">↗</span><p class="eyebrow">WELCOME TO YOUR VAULT</p><h2>Good to have<br>you here.</h2><p class="login-intro">Less admin starts here. Use your business access key to open your workspace.</p>
+          <form id="login-form">
+            <label for="access-key">Business access key</label>
+            <div class="key-input"><input id="access-key" type="password" autocomplete="off" spellcheck="false" required maxlength="200" placeholder="Enter your private key" aria-describedby="key-help login-error"><button id="toggle-key" type="button" class="key-toggle" aria-label="Show access key" aria-pressed="false">Show</button></div>
+            <p id="login-error" class="error" role="alert" hidden></p>
+            <button id="login-submit" class="login-submit" type="submit"><span>Open my workspace</span><span aria-hidden="true">↗</span></button>
+          </form>
+          <p id="key-help" class="key-help">Your key stays in this tab’s memory only. Signing out or reloading clears it.</p>
+          <details class="access-help"><summary>Don’t have an access key?</summary><p>For a read-only design preview, enter <strong>vault-demo</strong>. It shows fictional invoices, not a real business account.</p><p>For your own documents, ask your administrator to create a business and give you its key privately. Existing keys cannot be recovered. Keep yours in a password manager; it grants access to your business’s documents.</p></details>
+        </div>
+        <div class="login-bottom"><span>A home for every invoice.</span><span>Organized by you. Kept local.</span></div>
+      </div>
+    </section>
+    <div id="workspace" class="app-layout" hidden>
+      <aside class="sidebar" aria-label="Workspace navigation">
+        <a class="brand brand-light" href="#overview"><span class="brand-mark" aria-hidden="true">iv<span>.</span></span><span>invoice vault</span></a>
+        <div class="workspace-label"><span class="workspace-avatar" id="business-initial" aria-hidden="true">B</span><div><small>BUSINESS WORKSPACE</small><strong id="business-name"></strong></div></div>
+        <p class="nav-label">WORKSPACE</p>
+        <nav class="side-nav" aria-label="Main navigation"><a href="#overview" aria-current="location"><span aria-hidden="true">▦</span> Overview</a><a href="#library"><span aria-hidden="true">▤</span> Invoice library</a><a href="#add-invoices"><span aria-hidden="true">＋</span> Add invoices</a></nav>
+        <div class="sidebar-bottom"><div class="local-note"><span class="status-dot"></span><strong>A little peace of mind.</strong><p>Originals stay in this server’s local storage. Field extraction runs locally.</p><small>Prototype · not encrypted by the app</small></div><button id="logout" class="sign-out" type="button"><span aria-hidden="true">↪</span> Sign out</button></div>
+      </aside>
+      <div class="dashboard">
+        <header class="topbar"><span>Workspace <span class="breadcrumb-divider">/</span> <strong id="section-label">Overview</strong></span><div class="topbar-actions"><label class="theme-switch"><span>Dark mode</span><input id="theme-toggle" class="theme-toggle" type="checkbox" role="switch" aria-label="Enable dark mode"><span class="switch-track" aria-hidden="true"><span class="switch-thumb"></span></span></label><span class="session-label"><span class="status-dot"></span> <span id="session-label">Private business workspace</span></span></div></header>
+        <div class="dashboard-content">
+          <p id="demo-banner" class="demo-banner" role="note" hidden><strong>You’re exploring the design demo.</strong> All invoices and storage figures below are fictional. Search, filters, and navigation work; uploads, editing, and document actions are disabled. No business data is accessed.</p>
+          <section id="overview" class="heading dashboard-heading" tabindex="-1"><div><p class="eyebrow">LESS ADMIN. MORE ROOM TO GROW.</p><h1>Your paperwork,<br class="mobile-break"> in a good place.</h1><p class="muted">A clear view of your invoices. A little more space for your day.</p></div><a class="button" href="#add-invoices"><span aria-hidden="true">＋</span> Add invoices</a></section>
+          <section class="stats" aria-label="Invoice and storage summary">
+            <div class="card stat-card"><div class="stat-top"><span>Total invoices</span><span class="stat-icon" aria-hidden="true">▤</span></div><strong id="count">0</strong><small>Original documents in your vault</small></div>
+            <div class="card stat-card"><div class="stat-top"><span>Needs a second look</span><span class="stat-icon amber" aria-hidden="true">◷</span></div><strong id="review-count">0</strong><small>Unreviewed invoices on this page</small></div>
+            <div class="card stat-card"><div class="stat-top"><span>Storage used</span><span class="stat-icon" aria-hidden="true">▱</span></div><strong id="storage">0 MiB</strong><div class="storage-detail"><progress id="storage-meter" max="262144000" value="0" aria-label="Business storage used"></progress><small>250 MiB storage limit per business</small></div></div>
+          </section>
+          <div class="intake-grid">
+            <section id="add-invoices" class="card upload-card" tabindex="-1">
+              <div class="section-heading"><div><p class="eyebrow">INTO THE VAULT</p><h2>Add invoices</h2></div><span class="quiet-tag">PDF &amp; images</span></div>
+              <fieldset id="upload-controls"><legend class="sr-only">Upload an invoice</legend>
+                <div id="dropzone" tabindex="0" role="button" aria-label="Choose files or drop invoices here"><span class="upload-icon" aria-hidden="true">↥</span><h3>A fresh start for your paperwork.</h3><p>Drop invoices here, or <span>browse files</span></p><small>PDF, JPEG, PNG, WebP · 10 MiB each · 20 files per batch</small></div>
+                <input id="files" type="file" accept="application/pdf,image/jpeg,image/png,image/webp" multiple hidden>
+                <div class="camera-actions"><button id="camera-start" type="button" class="secondary"><span aria-hidden="true">◎</span> Use camera</button><button id="camera-file" type="button" class="secondary">Take or choose a photo <span aria-hidden="true">↗</span></button></div>
+                <input id="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" hidden>
+                <div id="camera-panel" hidden><video id="video" autoplay playsinline muted></video><div class="camera-actions"><button id="capture" type="button">Capture invoice</button><button id="camera-stop" type="button" class="secondary">Close camera</button></div></div>
+                <div id="preview-panel" hidden><img id="preview" alt="Captured invoice preview"><div class="camera-actions"><button id="save-photo" type="button">Upload this photo</button><button id="discard-photo" type="button" class="secondary">Discard photo</button></div></div>
+              </fieldset>
+              <div class="upload-notes"><label for="notes">A note for these invoices <span class="muted">(optional)</span></label><textarea id="notes" rows="2" maxlength="2000" placeholder="e.g. September supplies or the Oak Street project" aria-describedby="notes-help"></textarea><small id="notes-help">Applied to every file in your next upload batch.</small></div>
+              <progress id="progress" max="100" value="0" hidden aria-label="Current file upload progress"></progress><ul id="upload-results" aria-label="Upload results" aria-live="polite"></ul>
+            </section>
+            <aside class="review-guide"><span class="guide-spark" aria-hidden="true">✳</span><p class="eyebrow">THE DETAILS, SIMPLIFIED</p><h2>Upload it.<br>Check it.<br>Consider it organized.</h2><p>Text-based PDFs suggest four useful details, ready for your review.</p><ol class="field-list"><li>Invoice date</li><li>Invoice number</li><li>Total quoted amount</li><li>Customer name</li></ol><p class="guide-note">Always check the original. Scans and photos need manual entry; OCR isn’t enabled.</p><a class="sample-link" href="/test-invoice.pdf" download="test-invoice.pdf">Try a fictional test invoice <span aria-hidden="true">↓</span></a></aside>
+          </div>
+          <section id="library" class="card library" tabindex="-1">
+            <div class="heading library-heading"><div><p class="eyebrow">EVERYTHING, IN ORDER</p><h2>Your invoice library</h2><p class="muted">Original documents, newest uploads first.</p></div><button id="refresh" class="secondary" type="button">↻ Refresh</button></div>
+            <div class="library-tools"><div class="search-wrap"><label class="sr-only" for="invoice-search">Search invoices on this page</label><input id="invoice-search" type="search" placeholder="Search this page by file, customer, or invoice…" aria-describedby="filter-scope"></div><div class="filter-wrap"><label class="sr-only" for="review-filter">Review status on this page</label><select id="review-filter"><option value="all">All review statuses</option><option value="pending">Needs review</option><option value="reviewed">Reviewed</option></select></div></div>
+            <p id="filter-scope" class="filter-scope">Search and filters apply to the current page, up to 50 invoices.</p>
+            <div id="empty" class="empty-state"><span class="empty-icon" aria-hidden="true">▤</span><h3>A clean slate. A calmer workday.</h3><p>Your first invoice is the start of something organized.</p><a class="button secondary" href="#add-invoices">Add your first invoice <span aria-hidden="true">↗</span></a></div>
+            <div id="no-matches" class="empty-state" hidden><h3>No matches on this page.</h3><p>Try a different search or review status.</p><button id="clear-filters" type="button" class="secondary">Clear filters</button></div>
+            <p id="library-error" class="error" role="alert" hidden></p>
+            <div class="table-wrap"><table id="table" hidden><caption class="sr-only">Uploaded invoices and their four reviewable fields</caption><thead><tr><th scope="col">Document</th><th scope="col">Invoice details</th><th scope="col">Uploaded</th><th scope="col">Size</th><th scope="col">Actions</th></tr></thead><tbody id="rows"></tbody></table></div>
+            <nav class="pagination" aria-label="Invoice pages"><span id="filter-count"></span><div><button id="previous" class="secondary" type="button">Previous</button><span id="page"></span><button id="next" class="secondary" type="button">Next</button></div></nav>
+          </section>
+          <footer class="dashboard-footer"><span>invoice vault <span aria-hidden="true">/</span> A little less paperwork.</span><span>Local-first prototype · Review all extracted fields</span></footer>
+        </div>
+      </div>
+    </div>
+    <p id="status" role="status" aria-live="polite"></p>
+  </main>
+</body>
+</html>

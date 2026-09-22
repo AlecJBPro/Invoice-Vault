@@ -1,0 +1,25 @@
+# Local environments and downloaded browser dependencies
+.venv/
+venv/
+.browser-libs/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Credentials and local business data
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+.invoice-vault/
+*.sqlite*
+*.db
+*.db-*
+
+# Local editor / OS files
+.DS_Store
+.idea/
+.vscode/
