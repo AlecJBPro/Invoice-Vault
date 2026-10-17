@@ -18,7 +18,7 @@ DEFAULT_PORT = 7755
 def main():
     """Parse a command and run the requested administrator operation."""
     parser = argparse.ArgumentParser(description='Invoice Vault local prototype')
-    parser.add_argument('--data-dir', type=Path, default=Path.home() / '.invoice-vault',
+    parser.add_argument('--data-dir', type=Path, default=None,
                         help='Private persistent storage, outside the source repository by default')
     commands = parser.add_subparsers(dest='command', required=True)
 
@@ -29,12 +29,21 @@ def main():
     create.add_argument('name')
 
     serve = commands.add_parser('serve', help='Start the loopback-only web app')
+    serve.add_argument('--demo', action='store_true', help='Serve fictional read-only demo; requires --data-dir')
+    commands.add_parser('demo-reset', help='Initialize or reset a dedicated fictional demo directory')
     serve.add_argument('--port', type=int, default=DEFAULT_PORT)
     serve.add_argument('--public-origin', help='Exact HTTPS origin when behind a configured reverse proxy')
     args = parser.parse_args()
 
     try:
-        store = Store(args.data_dir)
+        demo = args.command == 'demo-reset' or getattr(args, 'demo', False)
+        if demo and args.data_dir is None:
+            parser.error('Demo requires an explicit separate --data-dir.')
+        from .demo import DemoStore
+        store = DemoStore(args.data_dir) if demo else Store(args.data_dir or Path.home() / '.invoice-vault')
+        if args.command == 'demo-reset':
+            print('Fictional demo seed reset complete.')
+            return
         if args.command == 'create-business':
             business = store.create_business(args.name)
             print('Business:', business['name'])

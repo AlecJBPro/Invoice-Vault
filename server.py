@@ -8,6 +8,7 @@ from pathlib import Path
 from urllib.parse import parse_qs, quote, unquote, urlsplit
 
 from .store import MAX_FILE_BYTES, QuotaExceeded
+from .demo import DemoStore
 
 UI = Path(__file__).parent / 'ui'
 STATIC = {'/test-invoice.pdf': ('test-invoice.pdf', 'application/pdf'), '/': ('index.html', 'text/html; charset=utf-8'),
@@ -24,15 +25,22 @@ class Server(ThreadingHTTPServer):
         if address[0] != '127.0.0.1':
             raise ValueError('The prototype must bind to 127.0.0.1.')
         if public_origin:
+            if any(ord(c) <= 32 or ord(c) >= 127 for c in public_origin):
+                raise ValueError('Public origin must contain only visible ASCII.')
             parts = urlsplit(public_origin)
+            port = parts.port  # Access validates numeric syntax and range.
             if (parts.scheme != 'https' or not parts.hostname or parts.username or parts.password
-                    or parts.path or parts.query or parts.fragment):
+                    or parts.path or parts.query or parts.fragment or port == 0 or parts.netloc.endswith(':')):
                 raise ValueError('Public origin must be an HTTPS origin without a path.')
         self.store = store
         self.slots = threading.BoundedSemaphore(8)
         super().__init__(address, Handler)
         self.origin = public_origin or 'http://127.0.0.1:' + str(self.server_port)
         self.host = urlsplit(self.origin).netloc
+
+    def service_actions(self):
+        if isinstance(self.store, DemoStore):
+            self.store.reset_if_due()
 
     def process_request(self, request, client_address):
         if not self.slots.acquire(blocking=False):
@@ -74,12 +82,20 @@ class Handler(BaseHTTPRequestHandler):
         self.send_header('X-Content-Type-Options', 'nosniff')
         self.send_header('Referrer-Policy', 'no-referrer')
         self.send_header('Cross-Origin-Resource-Policy', 'same-origin')
-        self.send_header('Permissions-Policy', 'camera=(self), microphone=()')
+        self.send_header('Cross-Origin-Opener-Policy', 'same-origin')
+        self.send_header('X-Frame-Options', 'DENY')
+        camera = '()' if isinstance(self.server.store, DemoStore) else '(self)'
+        self.send_header('Permissions-Policy', 'camera=' + camera + ', microphone=(), geolocation=(), payment=(), usb=()')
         self.send_header('Content-Security-Policy', "default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self' blob:; media-src 'self' blob:; base-uri 'none'; form-action 'self'; frame-ancestors 'none'")
         for name, value in (extra or {}).items():
             self.send_header(name, value)
         self.end_headers()
         self.wfile.write(raw)
+
+    def send_error(self, code, message=None, explain=None):
+        # Base handler errors must share the same headers and generic JSON body.
+        self.close_connection = True
+        self.output(code, {'error': 'HTTP request rejected.'})
 
     def do_GET(self):
         self.dispatch('GET')
@@ -91,6 +107,7 @@ class Handler(BaseHTTPRequestHandler):
         self.dispatch('DELETE')
 
     def dispatch(self, method):
+        self.close_connection = True
         try:
             self.route(method)
         except QuotaExceeded as error:
@@ -108,12 +125,23 @@ class Handler(BaseHTTPRequestHandler):
         """Validate origin/authentication, then dispatch one safe API route."""
         if self.headers.get_all('Host', []) != [self.server.host]:
             return self.output(403, {'error': 'Invalid host.'})
+        origins = self.headers.get_all('Origin', [])
+        if len(origins) > 1:
+            return self.output(403, {'error': 'Invalid origin.'})
         origin = self.headers.get('Origin')
         if origin is not None and origin != self.server.origin:
             return self.output(403, {'error': 'Cross-origin requests are not allowed.'})
         if method != 'GET' and origin != self.server.origin:
             return self.output(403, {'error': 'Same-origin requests are required.'})
         path = urlsplit(self.path)
+        if path.scheme or path.netloc or path.fragment:
+            return self.output(400, {'error': 'Invalid request target.'})
+        is_demo = isinstance(self.server.store, DemoStore)
+        if is_demo and method != 'GET':
+            self.close_connection = True
+            return self.output(403, {'error': 'Fictional demo is read-only.'})
+        if method == 'GET' and path.path == '/api/config':
+            return self.output(200, {'demo': is_demo})
         if method == 'GET' and path.path in STATIC:
             filename, kind = STATIC[path.path]
             return self.output(200, (UI / filename).read_bytes(), kind)
@@ -121,6 +149,8 @@ class Handler(BaseHTTPRequestHandler):
             return self.output(404, {'error': 'Not found.'})
         authorization = self.headers.get('Authorization', '')
         token = authorization[7:] if authorization.startswith('Bearer ') else ''
+        if len(self.headers.get_all('Authorization', [])) > 1:
+            return self.output(401, {'error': 'Invalid authorization.'})
         business = self.server.store.authenticate(token)
         if not business:
             return self.output(401, {'error': 'Enter a valid business access key.'})
@@ -130,7 +160,10 @@ class Handler(BaseHTTPRequestHandler):
         if path.path == '/api/invoices':
             if method == 'GET':
                 query = parse_qs(path.query)
-                offset = int(query.get('offset', ['0'])[0])
+                value = query.get('offset', ['0'])[0]
+                if not re.fullmatch(r'[0-9]{1,10}', value):
+                    raise ValueError('Invalid offset')
+                offset = int(value)
                 return self.output(200, store.list(owner, offset))
             if method == 'POST':
                 if self.headers.get('Transfer-Encoding') or len(self.headers.get_all('Content-Length', [])) != 1:
@@ -163,6 +196,14 @@ class Handler(BaseHTTPRequestHandler):
                     raise ValueError('Extraction request must have an empty body')
                 item = store.reextract(owner, key)
             return self.output(200, {'invoice': item}) if item else self.output(404, {'error': 'Not found.'})
+        if is_demo and method == 'GET':
+            preview = re.fullmatch(r'/api/invoices/([0-9a-f]{32})/view', path.path)
+            if preview:
+                item = store.get(owner, preview.group(1))
+                if item:
+                    return self.output(200, item['document'], 'application/pdf',
+                                       {'Content-Disposition': 'inline; filename=fictional-demo.pdf'})
+                return self.output(404, {'error': 'Not found.'})
         match = re.fullmatch(r'/api/invoices/([0-9a-f]{32})', path.path)
         if match:
             key = match.group(1)

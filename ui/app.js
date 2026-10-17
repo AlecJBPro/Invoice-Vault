@@ -6,7 +6,7 @@ const DEMO_KEY = 'vault-demo';
 
 // Application state is kept in memory. The real business key is never placed
 // in localStorage, cookies, URLs, or the demo data shown by the landing page.
-let demo = false, pageInvoices = [], refreshGeneration = 0;
+let serverDemo = false, demo = false, pageInvoices = [], refreshGeneration = 0;
 let token = '', epoch = 0, offset = 0, total = 0, busy = false;
 let stream = null, cameraGeneration = 0, photo = null, previewURL = null;
 const demoInvoices = [
@@ -35,7 +35,7 @@ function inlineError(id, message = '') {
 // session-change checks in one place so individual UI actions stay simple.
 async function api(path, options = {}) {
   const current = epoch;
-  if (demo) {
+  if (demo && !serverDemo) {
     if ((!options.method || options.method === 'GET') && path === '/api/me') {
       return new Response(JSON.stringify({name: 'Demo Studio · preview'}));
     }
@@ -291,7 +291,7 @@ async function refresh() {
       const download = document.createElement('button');
       download.className = 'secondary';
       download.textContent = 'Download';
-      download.disabled = demo;
+      download.disabled = demo && !serverDemo;
       download.setAttribute('aria-label', 'Download ' + invoice.filename);
       download.onclick = async () => {
         download.disabled = true;
@@ -309,7 +309,7 @@ async function refresh() {
           link.remove();
           setTimeout(() => URL.revokeObjectURL(url), 60000);
         } catch (error) { showError(error); }
-        finally { download.disabled = demo; }
+        finally { download.disabled = demo && !serverDemo; }
       };
       const remove = document.createElement('button');
       remove.className = 'danger';
@@ -329,6 +329,16 @@ async function refresh() {
         } catch (error) { showError(error); }
         finally { remove.disabled = demo; }
       };
+      if (serverDemo) {
+        const view = document.createElement('a');
+        view.className = 'button secondary';
+        view.textContent = 'View';
+        view.href = '/api/invoices/' + invoice.id + '/view';
+        view.target = '_blank';
+        view.rel = 'noopener';
+        actions.append(view);
+        download.title = 'Download fictional invoice';
+      }
       actions.append(download, remove);
       row.append(name, fieldReview(invoice), date, bytes, actions);
       $('rows').append(row);
@@ -426,7 +436,7 @@ $('login-form').onsubmit = async event => {
   button.disabled = true;
   inlineError('login-error');
   const entered = $('access-key').value.trim();
-  demo = entered === DEMO_KEY;
+  demo = serverDemo || entered === DEMO_KEY;
   token = demo ? '' : entered;
   const current = ++epoch;
   status('Opening workspace…');
@@ -550,3 +560,11 @@ $('discard-photo').onclick = discardPhoto;
 document.addEventListener('visibilitychange', () => { if (document.hidden) stopCamera(); });
 window.addEventListener('pagehide', () => { stopCamera(); discardPhoto(); token = ''; demo = false; epoch++; });
 window.addEventListener('pageshow', event => { if (event.persisted) signOut(); });
+
+// Detect the server-enforced public demo; the private key flow stays unchanged.
+fetch('/api/config').then(response => response.json()).then(config => {
+  if (!config.demo) return;
+  serverDemo = true;
+  $('access-key').value = DEMO_KEY;
+  $('login-form').requestSubmit();
+}).catch(() => {});

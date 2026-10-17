@@ -3,6 +3,7 @@
 A standalone, local-first invoice web app alongside Ultron. PDF extraction uses the pinned pypdf dependency in requirements.txt.
 Use Python 3.9+ and a project virtual environment.
 This is a working prototype, not a deployed or production-hardened online service.
+For the separate fictional read-only public demo, see [DEMO.md](DEMO.md).
 It does not change Ultron's interface or integrations.
 
 ## Clone the repository
@@ -56,7 +57,7 @@ has no individual staff logins, key rotation/recovery, or self-service registrat
   the original filename and notes; they do not overwrite an existing record.
 - Paginated library, original-file downloads, and confirmed permanent deletion.
 - Server-side business isolation for listing, downloading, deletion, and deduplication.
-- 250 MiB logical document quota per business and bounded concurrent connections.
+- 250 MiB logical document quota and 10,000 invoice maximum per business, with bounded concurrent connections.
 
 ## Automatic invoice fields
 
@@ -111,7 +112,9 @@ backup. Restore to a private directory and point both commands at it. For live
 backups, an operator must use SQLite's backup API rather than copying a database
 while it is being written. Test restores before trusting backups. Deleted documents
 may remain in backups or storage snapshots. The logical quota is not a disk-size
-limit: database overhead and freed pages can make the database larger.
+limit: database overhead and freed pages can make the database larger. A transactional
+10,000-invoice ceiling also bounds metadata growth from tiny documents; existing
+rows are retained, and duplicates remain available when a quota is reached.
 
 ## Phone access and eventual online hosting
 

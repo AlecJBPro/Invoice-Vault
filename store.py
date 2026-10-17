@@ -11,6 +11,7 @@ from .extraction import FIELDS, extract_invoice
 
 MAX_FILE_BYTES = 10 * 1024 * 1024
 MAX_BUSINESS_BYTES = 250 * 1024 * 1024
+MAX_BUSINESS_INVOICES = 10_000
 EXTRA_COLUMNS = FIELDS + ('extraction_status', 'extraction_message', 'reviewed_at')
 PUBLIC_COLUMNS = 'id, filename, content_type, created_at, notes, sha256, size, ' + ', '.join(EXTRA_COLUMNS)
 
@@ -125,8 +126,10 @@ class Store:
                              (business_id, digest)).fetchone()
             if old:
                 return dict(old), True
-            total = db.execute('SELECT COALESCE(SUM(size), 0) FROM invoices WHERE business_id = ?',
-                               (business_id,)).fetchone()[0]
+            count, total = db.execute('SELECT COUNT(*), COALESCE(SUM(size), 0) FROM invoices WHERE business_id = ?',
+                                      (business_id,)).fetchone()
+            if count >= MAX_BUSINESS_INVOICES:
+                raise QuotaExceeded('This business has reached its 10,000 invoice limit.')
             if total + len(data) > MAX_BUSINESS_BYTES:
                 raise QuotaExceeded('This business has reached its 250 MiB storage limit.')
             key = uuid.uuid4().hex

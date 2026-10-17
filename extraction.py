@@ -98,6 +98,8 @@ def parse_text(text):
 
 def extract_invoice(data, content_type):
     """Run bounded extraction in a separate worker process for PDF uploads."""
+    if not isinstance(data, bytes) or len(data) > 10 * 1024 * 1024:
+        return result('limited', 'Document exceeds extraction input limit.')
     if content_type != 'application/pdf':
         return result('needs_ocr', 'Photo/image extraction is not enabled. Enter the fields manually.')
     if not SLOTS.acquire(blocking=False):
@@ -125,7 +127,7 @@ def worker(data):
         resource.setrlimit(resource.RLIMIT_CPU, (8, 8))
         resource.setrlimit(resource.RLIMIT_AS, (512 * 1024 * 1024, 512 * 1024 * 1024))
     except (ImportError, ValueError, OSError):
-        pass  # Wall-clock timeout remains enforced on platforms without resource.
+        return result('unavailable', 'PDF resource isolation is unavailable; enter fields manually.')
     try:
         from pypdf import PdfReader
     except ImportError:

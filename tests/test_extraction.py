@@ -3,6 +3,7 @@ import io
 import json
 import sqlite3
 import subprocess
+import sys
 import tempfile
 import unittest
 from contextlib import closing
@@ -17,6 +18,19 @@ from invoices.tests import test_invoices as api_tests
 EXPECTED = dict(invoice_date='2026-09-11', invoice_number='TEST-1001',
                 total_quoted_amount='USD 1,080.00', customer_name='Example Customer LLC')
 
+# Probe in a child: lowering the runner's hard limit would affect every test.
+# macOS exposes RLIMIT_AS but rejects setting it; production must fail closed.
+try:
+    HAS_ADDRESS_LIMIT = subprocess.run(
+        [sys.executable, '-I', '-c',
+         'import resource; resource.setrlimit(resource.RLIMIT_AS, (512*1024*1024,)*2)'],
+        stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=5,
+        check=False).returncode == 0
+except (OSError, subprocess.TimeoutExpired):
+    HAS_ADDRESS_LIMIT = False
+LIMIT_REASON = 'PDF worker needs enforceable RLIMIT_AS; this platform cannot set it (production fails closed).'
+requires_address_limit = unittest.skipUnless(HAS_ADDRESS_LIMIT, LIMIT_REASON)
+
 
 class ExtractionTests(unittest.TestCase):
     def test_four_fields_from_text(self):
@@ -24,6 +38,7 @@ class ExtractionTests(unittest.TestCase):
         self.assertEqual({key: parsed[key] for key in FIELDS}, EXPECTED)
         self.assertEqual(parsed['extraction_status'], 'needs_review')
 
+    @requires_address_limit
     def test_real_pdf_worker(self):
         parsed = extract_invoice(make_pdf(), 'application/pdf')
         self.assertEqual({key: parsed[key] for key in FIELDS}, EXPECTED)
@@ -83,6 +98,8 @@ class ExtractionTests(unittest.TestCase):
                                    (make_pdf(encrypted=True), 'application/pdf', 'encrypted'),
                                    (b'%PDF-malformed', 'application/pdf', 'failed')]:
             with self.subTest(status=status):
+                if kind == 'application/pdf' and not HAS_ADDRESS_LIMIT:
+                    self.skipTest(LIMIT_REASON)
                 parsed = extract_invoice(data, kind)
                 self.assertEqual(parsed['extraction_status'], status)
                 self.assertTrue(all(parsed[key] == '' for key in FIELDS))
@@ -95,6 +112,7 @@ class ExtractionTests(unittest.TestCase):
             self.assertEqual(extract_invoice(b'%PDF-', 'application/pdf')['extraction_status'], 'unavailable')
             slots.release.assert_not_called()
 
+    @requires_address_limit
     def test_page_limit(self):
         from pypdf import PdfWriter
         writer = PdfWriter()
@@ -148,11 +166,13 @@ class ReviewStoreTests(unittest.TestCase):
         saved = self.store.save_fields(self.a, self.row['id'], dict.fromkeys(FIELDS, ''))
         self.assertEqual(saved['extraction_status'], 'reviewed')
 
+    @requires_address_limit
     def test_failed_extraction_still_saves_document(self):
         row, _ = self.store.add(self.a, 'broken.pdf', b'%PDF-broken')
         self.assertEqual(row['extraction_status'], 'failed')
         self.assertEqual(self.store.get(self.a, row['id'])['document'], b'%PDF-broken')
 
+    @requires_address_limit
     def test_migration_preserves_existing_records(self):
         with tempfile.TemporaryDirectory() as folder:
             with closing(sqlite3.connect(Path(folder) / 'invoices.sqlite')) as db, db:
@@ -167,6 +187,7 @@ class ReviewStoreTests(unittest.TestCase):
 
 
 class FieldAPITests(api_tests.APITests):
+    @requires_address_limit
     def test_field_endpoints(self):
         status, _, body = self.upload(make_pdf())
         self.assertEqual(status, 201)
@@ -187,6 +208,7 @@ class FieldAPITests(api_tests.APITests):
         self.assertEqual(json.loads(body)['invoice']['extraction_status'], 'reviewed')
         self.assertEqual(self.request(path, token=self.a['token'])[2], make_pdf())
 
+    @requires_address_limit
     def test_fictional_download(self):
         status, _, body = self.request('/test-invoice.pdf')
         self.assertEqual(status, 200)
