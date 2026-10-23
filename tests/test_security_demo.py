@@ -47,6 +47,31 @@ class SecurityDemoTests(unittest.TestCase):
         head, content = bytes(connection.output).split(b'\r\n\r\n', 1)
         return int(head.split()[1]), head, content
 
+    def test_favicon_static_headers_host_and_demo_read_only(self):
+        for store in (self.store, Store(Path(self.temp.name) / 'private')):
+            self.server.store = store
+            with self.subTest(demo=isinstance(store, DemoStore)):
+                status, headers, body = self.request('/favicon.svg')
+                self.assertEqual(status, 200)
+                self.assertTrue(body)
+                self.assertIn(b'Content-Type: image/svg+xml\r\n', headers)
+                self.assertIn(b'X-Content-Type-Options: nosniff\r\n', headers)
+                home_headers = self.request('/')[1]
+                for header in headers.split(b'\r\n'):
+                    if header.startswith((b'Content-Security-Policy:', b'Permissions-Policy:',
+                                          b'Cross-Origin-', b'X-Frame-Options:',
+                                          b'Referrer-Policy:', b'Cache-Control:')):
+                        self.assertIn(header, home_headers.split(b'\r\n'))
+                self.assertEqual(self.request('/favicon.svg', headers=[('Host', 'evil.invalid')])[0], 403)
+                for method in ('POST', 'DELETE'):
+                    status, _, body = self.request('/favicon.svg', method,
+                        [('Origin', self.server.origin)])
+                    self.assertEqual(status, 403 if isinstance(store, DemoStore) else 404)
+                    if isinstance(store, DemoStore):
+                        self.assertEqual(json.loads(body)['error'], 'Fictional demo is read-only.')
+                for method in ('PUT', 'PATCH', 'HEAD', 'OPTIONS'):
+                    self.assertEqual(self.request('/favicon.svg', method)[0], 501)
+
     def test_demo_no_key_browse_view_download(self):
         self.assertEqual(json.loads(self.request('/api/config')[2]), {'demo': True})
         self.assertEqual(json.loads(self.request('/api/me')[2]), BUSINESS)

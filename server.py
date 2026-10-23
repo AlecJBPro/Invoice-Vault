@@ -13,6 +13,7 @@ from .demo import DemoStore
 UI = Path(__file__).parent / 'ui'
 STATIC = {'/test-invoice.pdf': ('test-invoice.pdf', 'application/pdf'), '/': ('index.html', 'text/html; charset=utf-8'),
           '/app.js': ('app.js', 'text/javascript; charset=utf-8'),
+          '/favicon.svg': ('favicon.svg', 'image/svg+xml'),
           '/style.css': ('style.css', 'text/css; charset=utf-8')}
 
 

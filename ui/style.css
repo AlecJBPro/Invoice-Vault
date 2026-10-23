@@ -19,3 +19,6 @@ html[data-theme='dark']{color-scheme:dark;--forest:#102b25;--ink:#e7eee3;--muted
 
 .login-entry-top{display:flex;align-items:flex-start;justify-content:space-between;gap:18px}.landing-theme-switch{color:var(--muted);white-space:nowrap}.landing-theme-switch .switch-track{flex-shrink:0}
 @media(max-width:700px){.login-entry-top{align-items:center}.landing-theme-switch{font-size:10px}.landing-theme-switch .switch-track{width:36px}.landing-theme-switch input:checked+.switch-track .switch-thumb{transform:translateX(14px)}}
+/* Sections focused from code (tabindex=-1) for screen readers draw no outline; controls keep theirs. */
+[tabindex="-1"]:focus{outline:none}
+.demo-banner{margin-bottom:24px}
